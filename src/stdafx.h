@@ -1,0 +1,16 @@
+#pragma once
+#include <vector>
+#include <string>
+#include <iostream>
+#include <algorithm>
+#include <string_view>
+#include <cstdint>
+#include <set>
+#include <utility>
+#include "../include/SFML/Graphics.hpp"
+#include "Texture.h"
+#include "Debug_logger.h"
+#include "Exception.h"
+#include "Object.h"
+#include "Collision.h"
+#include "Graphics.h"
