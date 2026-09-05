@@ -3,11 +3,6 @@
 SOURCE_FOLDER_PATH=$1
 OUTPUT_DIR=$2
 
-if [ -d $OUTPUT_DIR ]; then
-    echo "[INFO] Removing existing build"
-    rm -rf $OUTPUT_DIR;
-fi
-
 echo "[INFO] Fetching .cpp file names from $SOURCE_FOLDER_PATH"
 
 SRC_FILES=$(ls $SOURCE_FOLDER_PATH | grep -E '\.cpp$' | tr '\n' ';' | sed 's/;$//')
