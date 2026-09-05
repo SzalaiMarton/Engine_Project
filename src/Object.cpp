@@ -1,7 +1,15 @@
 #include "stdafx.h"
 #include "Object.h"
+#include <cmath>
 
 void Object::onUpdate() {
+	if (Renderer::getCamera()->isOnScreen(this)) {
+		this->isOnScreen = true;
+	}
+	else {
+		this->isOnScreen = false;
+	}
+
 	auto collComp = this->getComponent<CollideComponent>();
 	auto texComp = this->getComponent<TextureComponent>();
 	auto phyComp = this->getComponent<PhysicsComponent>();
@@ -12,20 +20,34 @@ void Object::onUpdate() {
 		phyComp->applyForce({ 0, (gravity * phyComp->gravityTransformer)});
 		phyComp->update();
 
+		if (collComp && texComp && phyComp && collComp->continuousCollisionChecks) {
+			std::vector<Object*> collidingObjs = collComp->continuousChecks(this);
+
+			if (!collidingObjs.empty()) {
+				if (this->getName() == "obj3") {
+					LOG(collidingObjs.size());
+				}
+				
+				phyComp->gravityTransformer = 0;
+				phyComp->velocity = { 0, 0 };
+				phyComp->clampsToObject(this, collidingObjs[0]);
+			}
+		}
+
 		if (texComp) {
 			texComp->setPos(phyComp->pos);
 		}
 	}
 
 	if (collComp && texComp) {
-		if (collComp->checkForMovement(texComp->sprite->getPosition())) {
+		if (collComp->isMoving(texComp->sprite->getPosition())) {
 			collComp->treeNodes.clear();
 			CollisionSystem::insert(this);
 		}
 	}
 
-	if (collComp && texComp && phyComp) {
-		auto collidingObjs = collComp->getCollidingObjects(this);
+	if (collComp && texComp && phyComp && !collComp->continuousCollisionChecks) {
+		std::vector<Object*> collidingObjs = collComp->discreteChecks(this);
 
 		if (!collidingObjs.empty()) {
 			phyComp->gravityTransformer = 0;
@@ -39,7 +61,7 @@ Object::Object(std::string_view name, Layer* parent, uint8_t zIndex) : name(name
 }
 
 Object::Object(const Object& obj) : name(obj.name), zIndex(obj.zIndex), parent(obj.parent) {
-	for (const auto& pair : obj.components) {
+	for (auto& pair : obj.components) {
 		this->components[pair.first] = pair.second->copy();
 
 		if (pair.first == std::type_index(typeid(CollideComponent))) {
@@ -154,7 +176,7 @@ TextureComponent::TextureComponent(std::string_view textureName, bool isVisible)
 TextureComponent::TextureComponent(const TextureComponent& original) {
 	this->isVisible = original.isVisible;
 	this->sprite = new sf::Sprite(*original.sprite);
-	//this->setSize(original.sprite->getGlobalBounds().size.x, original.sprite->getGlobalBounds().size.y);
+	//this->setSize(original.sprite->getGlobalBounds().size.x, original.sprite->getGlobalBounds().size.y); don't remember the reason why it's commented
 }
 
 HealthComponent::HealthComponent(const HealthComponent& original) {
@@ -292,11 +314,13 @@ CollideComponent& CollideComponent::removeTreeNode(QuadTree* node) {
 	return *this;
 }
 
-std::vector<Object*> CollideComponent::getCollidingObjects(Object* original) {
-	auto ogPos = original->getComponent<TextureComponent>()->sprite->getGlobalBounds().position;
-	auto ogBound = original->getComponent<TextureComponent>()->sprite->getGlobalBounds().size + ogPos;
+std::vector<Object*> CollideComponent::discreteChecks(Object* original) {
+	// discrete check always have to be called after position refresh
 
 	std::vector<Object*> res{};
+
+	auto ogPos = original->getComponent<TextureComponent>()->sprite->getGlobalBounds().position;
+	auto ogBound = original->getComponent<TextureComponent>()->sprite->getGlobalBounds().size + ogPos;
 
 	for (auto& node : this->treeNodes) {
 		for (auto& e : node->elements) {
@@ -305,7 +329,6 @@ std::vector<Object*> CollideComponent::getCollidingObjects(Object* original) {
 			}
 
 			if (e->getComponent<TextureComponent>()->contains(ogPos, ogBound)) {
-				LOG(e->getName() << " " << original->getName() << " are colliding");
 				res.push_back(e);
 			}
 		}
@@ -314,7 +337,69 @@ std::vector<Object*> CollideComponent::getCollidingObjects(Object* original) {
 	return res;
 }
 
-bool CollideComponent::checkForMovement(const sf::Vector2f& currentPos) const {
+std::vector<Object*> CollideComponent::continuousChecks(Object* original) {
+	// continuous check always have to be called before position refresh
+	
+	std::vector<Object*> res{};
+	
+	auto ogPos = original->getComponent<TextureComponent>()->sprite->getGlobalBounds().position;
+	auto ogSize = original->getComponent<TextureComponent>()->sprite->getGlobalBounds().size;
+	auto distance = original->getComponent<TextureComponent>()->sprite->getGlobalBounds().position + original->getComponent<PhysicsComponent>()->velocity;
+
+	uint8_t stepsX = (uint8_t)ceil(abs(ogPos.x - distance.x) / ogSize.x);
+	uint8_t stepsY = (uint8_t)ceil(abs(ogPos.y - distance.y) / ogSize.y);
+
+	auto testingPos = ogPos;
+
+	while (stepsX > 0 || stepsY > 0) {
+		if (stepsX <= 0) {
+			testingPos.x = ogPos.x;
+		}
+		
+		if (stepsY <= 0) {
+			testingPos.y = ogPos.y;
+		}
+		auto testingBound = testingPos + ogSize;
+
+		// test pos
+		auto node = CollisionSystem::getNode(testingPos);
+		for (auto& e : node->elements) {
+			if (e == original) {
+				continue;
+			}
+
+			if (e->getComponent<TextureComponent>()->contains(ogPos, testingBound)) {
+				res.push_back(e);
+			}
+		}
+
+		// test bound
+		node = CollisionSystem::getNode(testingBound);
+		for (auto& e : node->elements) {
+			if (e == original) {
+				continue;
+			}
+
+			if (e->getComponent<TextureComponent>()->contains(ogPos, testingBound)) {
+				res.push_back(e);
+			}
+		}
+
+		if (stepsX > 0) {
+			stepsX--;
+			testingPos.x -= ogSize.x;
+		}
+
+		if (stepsY > 0) {
+			stepsY--;
+			testingPos.y -= ogSize.y;
+		}
+	}
+
+	return res;
+}
+
+bool CollideComponent::isMoving(const sf::Vector2f& currentPos) const {
 	return (currentPos != prevPos);
 }
 
@@ -344,6 +429,28 @@ void PhysicsComponent::applyForce(const sf::Vector2f& force) {
 	f.y += force.y / this->mass;
 	this->acceleration.x = f.x;
 	this->acceleration.y = f.y;
+}
+
+void PhysicsComponent::clampsToObject(Object* parent, Object* other) {
+	if (!parent->hasComponent<TextureComponent>() || !other->hasComponent<TextureComponent>()) {
+		return;
+	}
+
+	auto pPos = parent->getComponent<TextureComponent>()->sprite->getGlobalBounds().position;
+	auto oPos = other->getComponent<TextureComponent>()->sprite->getGlobalBounds().position;
+	
+	auto pSize = parent->getComponent<TextureComponent>()->sprite->getGlobalBounds().size;
+	auto oSize = other->getComponent<TextureComponent>()->sprite->getGlobalBounds().size;
+
+	sf::Vector2f rd_oPos(abs(oPos.x - (pPos.x + pSize.x)), abs(oPos.y - (pPos.y + pSize.y)));
+	sf::Vector2f rd_oBound(abs((oPos.x + oSize.x) - pPos.x), abs((oPos.y + oSize.y) - pPos.y));
+
+	if (rd_oPos.x < rd_oBound.x || rd_oPos.y < rd_oBound.y) {
+		parent->getComponent<PhysicsComponent>()->pos = oPos + pSize;
+	}
+	else {
+		parent->getComponent<PhysicsComponent>()->pos = oPos + oSize + pSize;
+	}
 }
 
 Square::Square(sf::Vector2f pos, sf::Vector2f size, Layer* l) {

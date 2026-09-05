@@ -47,6 +47,13 @@ sf::RenderWindow* Renderer::getWindow() {
 	}
 }
 
+Camera* Renderer::getCamera() {
+	if (!currentCamera) {
+		currentCamera = new Camera(1600, 900, 0, 0);
+	}
+	return currentCamera;
+}
+
 void Renderer::setWindowName(std::string_view name) {
 	if (!window) {
 		windowName = name;
@@ -143,7 +150,7 @@ void Layer::diplayLayer() {
 		if (!zInd.second.empty()) {
 			for (auto& obj : zInd.second) {
 				if (obj) {
-					if (obj->hasComponent<TextureComponent>()) {
+					if (obj->hasComponent<TextureComponent>() && obj->isOnScreen) {
 						obj->getComponent<TextureComponent>()->display(*window);
 					}
 				}
@@ -369,6 +376,24 @@ Camera::~Camera() {
 
 sf::View& Camera::getView() {
 	return *this->view;
+}
+
+sf::Vector2f Camera::getTopLeft() {
+	return { this->view->getCenter().x - this->view->getSize().x / 2, this->view->getCenter().y - this->view->getSize().y / 2 };
+}
+
+sf::Vector2f Camera::getBotRight() {
+	return { this->view->getCenter().x + this->view->getSize().x / 2, this->view->getCenter().y + this->view->getSize().y / 2 };
+}
+
+bool Camera::isOnScreen(Object* e) {
+	auto pos = this->getTopLeft();
+	auto bound = this->getBotRight();
+
+	auto ePos = e->getComponent<TextureComponent>()->sprite->getGlobalBounds().position;
+	auto eBound = e->getComponent<TextureComponent>()->sprite->getGlobalBounds().size + ePos;
+
+	return ((pos.x <= ePos.x && bound.x >= eBound.x) || (pos.y <= ePos.y && bound.y >= eBound.y));
 }
 
 void Camera::moveByMouse(bool isDragging, Renderer* r) {

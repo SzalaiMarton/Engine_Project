@@ -13,7 +13,7 @@ int main() {
 	auto scene = new Scene();
 	auto layer = new Layer("main_layer", scene, 1);
 
-	auto obj1 = Builder("obj1", layer, 2).withTexture("sad").withHealth(100).withPhysics().withPos({ -22000, -100 }).withCollision(true).build();
+	auto obj1 = Builder("obj1", layer, 2).withTexture("sad").withHealth(100).withPhysics().withPos({ -100, -100 }).withCollision(true).build();
 	obj1->getComponent<TextureComponent>()->setSize(100, 100);
 	obj1->getComponent<PhysicsComponent>()->setMass(100);
 
@@ -27,6 +27,7 @@ int main() {
 	obj3->setName("obj3");
 	obj3->setPos({-1400, -800});
 	obj3->getComponent<PhysicsComponent>()->setGravity(1);
+	obj3->getComponent<CollideComponent>()->continuousCollisionChecks = true;
 
 	auto obj4 = new Object(*obj1);
 	obj4->setName("obj4");
@@ -84,6 +85,7 @@ int main() {
 					}
 				}
 				auto retrievedNode = CollisionSystem::getNode(mouseP, nullptr);
+
 				if (retrievedNode) {
 					LOG(retrievedNode);
 				}

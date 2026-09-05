@@ -83,6 +83,7 @@ public:
 	static void setCamera(Camera* camera);
 
 	static sf::RenderWindow* getWindow();
+	static Camera* getCamera();
 	void changeScene(Scene* newScene);
 	void refreshScreen();
 	Scene* getScene();
@@ -98,6 +99,9 @@ public:
 	~Camera();
 
 	sf::View& getView();
+	sf::Vector2f getTopLeft();
+	sf::Vector2f getBotRight();
+	bool isOnScreen(Object* e);
 	void moveByMouse(bool isDragging, Renderer* r);
 	void changeZoom(float value);
 };

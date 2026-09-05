@@ -68,10 +68,12 @@ struct PhysicsComponent : public Component {
 	PhysicsComponent& setMass(float value);
 	void update();
 	void applyForce(const sf::Vector2f& force);
+	void clampsToObject(Object* parent, Object* other);
 };
 
 struct CollideComponent : public Component {
 	bool canCollide = true;
+	bool continuousCollisionChecks = false; // if false it uses discrete checks
 	std::set<QuadTree*> treeNodes{};
 	sf::Vector2f prevPos{};
 
@@ -82,20 +84,20 @@ struct CollideComponent : public Component {
 	CollideComponent* copy() const override;
 	CollideComponent& setCollision(bool value);
 	CollideComponent& removeTreeNode(QuadTree* node);
-	std::vector<Object*> getCollidingObjects(Object* original);
-	bool checkForMovement(const sf::Vector2f& currentPos) const;
+	bool isMoving(const sf::Vector2f& currentPos) const;
+	std::vector<Object*> discreteChecks(Object* original);
+	std::vector<Object*> continuousChecks(Object* original);
 };
 
 
 class Object {
-protected:
+public:
 	std::string name;
 	uint8_t zIndex;
 	std::unordered_map<std::type_index, Component*> components;
 	bool isOnScreen = false;
 	Layer* parent = nullptr;
 
-public:
 	Object(std::string_view name, Layer* parent, uint8_t zIndex);
 	Object(const Object& obj);
 	~Object();
@@ -135,6 +137,7 @@ public:
 
 	void info();
 	void onUpdate();
+	
 };
 
 class Builder {

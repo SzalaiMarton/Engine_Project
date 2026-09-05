@@ -46,7 +46,7 @@ public:
 	static void insert(Object* e);
 	static void insert(std::vector<Object*> e);
 	static void draw(Layer* l);
-	static QuadTree* getNode(sf::Vector2f& pos, QuadTree* node);
+	static QuadTree* getNode(sf::Vector2f& pos, QuadTree* node = nullptr);
 	static void expand(sf::Vector2f& pos, sf::Vector2f& bound);
 	static void info();
 };
