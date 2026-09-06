@@ -7,7 +7,7 @@
 #include <cstdint>
 #include <set>
 #include <utility>
-#include "../include/SFML/Graphics.hpp"
+#include <SFML/Graphics.hpp>
 #include "Texture.h"
 #include "Debug_logger.h"
 #include "Exception.h"
