@@ -4,7 +4,7 @@ project(dummy_engine)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
@@ -12,8 +12,8 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pthread")
 
 set(ENGINE_SOURCES "")
 foreach(def ${SOURCE_FILES})
-    list(APPEND ENGINE_SOURCES "${SOURCE_DIR}/${def}")
-    message(STATUS "${SOURCE_DIR}/${def} file has been added")
+    list(APPEND ENGINE_SOURCES "${def}")
+    message(STATUS "${def} file has been added")
 endforeach()
 
 include(FetchContent)

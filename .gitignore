@@ -1,0 +1,17 @@
+.vs/
+assets/
+build/
+
+.gitattributes
+todo
+x64
+*.sln
+*.user
+*filters
+*.vcxproj
+*.log
+
+.vscode
+
+# temporary - while the README.md isnt completed
+*.md
