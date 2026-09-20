@@ -3,10 +3,7 @@
 #include <cstring>
 #include <ranges>
 #include <iostream>
-<<<<<<< HEAD
-=======
 #include <cmath>
->>>>>>> util_expansions
 
 void TestingEnvironment::mainloop() {
     while (!glfwWindowShouldClose(window)) {
@@ -46,7 +43,49 @@ void TestingEnvironment::cleanup() {
     glfwTerminate();
 }
 
-vk::DeviceCreateInfo TestingEnvironment::getDeviceInfo() {
+void TestingEnvironment::pickPhysicalDevice() {
+    if (this->instance->enumeratePhysicalDevices().empty()) {
+        throw std::runtime_error("[ERROR] Failed to find GPUs with Vulkan support!");
+    }
+
+    auto physicalDevices = vk::raii::PhysicalDevices(*this->instance);
+
+    for (auto pd: physicalDevices) {
+        try {
+            this->evalDevice(pd);
+        } catch (std::exception& e) {
+            continue;
+        }
+    }
+
+    if (!this->physicalDeviceCandidates.empty() && this->physicalDeviceCandidates.rbegin()->first > 0) {
+        this->physicalDevice = this->physicalDeviceCandidates.rbegin()->second;
+    } else {
+        std::runtime_error("[ERROR] Failed to find a suitable GPU!");
+    }
+
+    // this->physicalDevice.emplace(this->instance->enumeratePhysicalDevices().front());
+}
+
+void TestingEnvironment::evalDevice(const vk::raii::PhysicalDevice& physicalDevice) {
+    auto properties = physicalDevice.getProperties();
+    auto features = physicalDevice.getFeatures();
+    int score = 0;
+
+    try {
+        score += RequiredGPUFeatures::runAll(features);
+        score += RequiredGPUProperties::runAll(properties);
+        score += OptionalGPUFeatures::runAll(features);
+        score += OptionalGPUProperties::runAll(properties);
+
+        this->physicalDeviceCandidates.insert(std::make_pair(score, physicalDevice));
+    } catch (std::exception& e) {
+        LOG("[ERROR] " << &physicalDevice << "faile during requirement checks!");
+    }
+}
+
+vk::DeviceCreateInfo TestingEnvironment::getDeviceInfo()
+{
     auto queueFamilies = this->physicalDevice->getQueueFamilyProperties();
 
     uint32_t graphicsFamily = ~0u;
@@ -57,7 +96,7 @@ vk::DeviceCreateInfo TestingEnvironment::getDeviceInfo() {
         }
     }
     if (graphicsFamily == ~0u) {
-        throw std::runtime_error("No graphics queue family found");
+        throw std::runtime_error("[ERROR] No graphics queue family found");
     }
     this->graphicsQueueFamily = graphicsFamily;
 
@@ -89,7 +128,7 @@ std::pair<uint32_t, const char **> TestingEnvironment::getExtensionInfo() {
                 { return strcmp(extensionProperty.extensionName, glfwExtension) == 0; }
         )) 
         {
-            std::runtime_error("Required GLFW extension not supported: " + std::string(glfwExtensions[i]));
+            std::runtime_error("[ERROR] Required GLFW extension not supported: " + std::string(glfwExtensions[i]));
         }
     }
 
@@ -117,8 +156,7 @@ void TestingEnvironment::initVulkan() {
     };
 
     this->instance.emplace(this->context, createInfo);
-    this->physicalDevice.emplace(this->instance->enumeratePhysicalDevices().front());
-
+    this->pickPhysicalDevice();
     this->device.emplace(*this->physicalDevice, this->getDeviceInfo());
     this->buffer.emplace(*this->device, vk::BufferCreateInfo());
 }

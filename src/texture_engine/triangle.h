@@ -9,11 +9,19 @@ import vulkan_hpp;
 #include <GLFW/glfw3.h>
 #include <vector>
 #include <algorithm>
+#include <map>
+#include <array>
+#include "GpuRequirements.h"
+
+class Triangle;
+struct RequiredGPUFeatures;
+struct OptionalGPUFeatures;
+struct RequiredGPUProperties;
+struct OptionalGPUProperties;
+
 
 constexpr uint32_t WIDTH = 800;
 constexpr uint32_t HEIGHT = 600;
-
-class Triangle;
 
 class TestingEnvironment {
 public:
@@ -34,12 +42,15 @@ private:
     std::optional<vk::raii::Buffer> buffer;
 
     uint32_t graphicsQueueFamily = 0;
+    std::multimap<int, vk::raii::PhysicalDevice> physicalDeviceCandidates;
 
     void initWindow();
     void initVulkan();
     void mainloop();
     void cleanup();
 
+    void pickPhysicalDevice();
+    void evalDevice(const vk::raii::PhysicalDevice& physicalDevice);
     vk::DeviceCreateInfo getDeviceInfo();
     std::pair<uint32_t, const char**> getExtensionInfo();
 };
