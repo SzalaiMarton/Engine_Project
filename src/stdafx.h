@@ -1,4 +1,5 @@
 #pragma once
+
 #include <vector>
 #include <string>
 #include <iostream>
@@ -8,6 +9,7 @@
 #include <set>
 #include <utility>
 #include <SFML/Graphics.hpp>
+#include "texture_engine/triangle.h"
 #include "Texture.h"
 #include "Debug_logger.h"
 #include "Exception.h"
