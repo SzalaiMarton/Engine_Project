@@ -3,6 +3,10 @@
 #include <cstring>
 #include <ranges>
 #include <iostream>
+<<<<<<< HEAD
+=======
+#include <cmath>
+>>>>>>> util_expansions
 
 void TestingEnvironment::mainloop() {
     while (!glfwWindowShouldClose(window)) {
@@ -42,17 +46,35 @@ void TestingEnvironment::cleanup() {
     glfwTerminate();
 }
 
-void TestingEnvironment::initVulkan() {
-    VkInstance instance;
-    this->appInfo = VkApplicationInfo{
-        .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
-        .pApplicationName = "First Triangle",
-        .applicationVersion = VK_MAKE_VERSION(1, 0, 0),
-        .pEngineName = "No Engine",
-        .engineVersion = VK_MAKE_VERSION(1, 0, 0),
-        .apiVersion = VK_API_VERSION_1_0
-    };
+vk::DeviceCreateInfo TestingEnvironment::getDeviceInfo() {
+    auto queueFamilies = this->physicalDevice->getQueueFamilyProperties();
 
+    uint32_t graphicsFamily = ~0u;
+    for (uint32_t i = 0; i < queueFamilies.size(); ++i) {
+        if (queueFamilies[i].queueFlags & vk::QueueFlagBits::eGraphics) {
+            graphicsFamily = i;
+            break;
+        }
+    }
+    if (graphicsFamily == ~0u) {
+        throw std::runtime_error("No graphics queue family found");
+    }
+    this->graphicsQueueFamily = graphicsFamily;
+
+    float priority = 1.0f;
+    vk::DeviceQueueCreateInfo queueInfo{};
+    queueInfo.queueFamilyIndex = graphicsFamily;
+    queueInfo.queueCount        = 1;
+    queueInfo.pQueuePriorities  = &priority;
+
+    vk::DeviceCreateInfo deviceInfo{};
+    deviceInfo.queueCreateInfoCount = 1;
+    deviceInfo.pQueueCreateInfos    = &queueInfo;
+
+    return deviceInfo;
+}
+
+std::pair<uint32_t, const char **> TestingEnvironment::getExtensionInfo() {
     // Get the required instance extensions from GLFW.
     uint32_t glfwExtensionCount = 0;
     auto glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
@@ -71,18 +93,34 @@ void TestingEnvironment::initVulkan() {
         }
     }
 
+    return std::pair<uint32_t, const char **>({glfwExtensionCount, glfwExtensions});
+}
+
+void TestingEnvironment::initVulkan() {
+    VkInstance instance;
+    this->appInfo = VkApplicationInfo{
+        .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
+        .pApplicationName = "First Triangle",
+        .applicationVersion = VK_MAKE_VERSION(1, 0, 0),
+        .pEngineName = "No Engine",
+        .engineVersion = VK_MAKE_VERSION(1, 0, 0),
+        .apiVersion = VK_API_VERSION_1_0
+    };
+
+    auto extensionInfo = this->getExtensionInfo();
+
     this->createInfo = VkInstanceCreateInfo{
         .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
         .pApplicationInfo = &appInfo,
-        .enabledExtensionCount = glfwExtensionCount,
-        .ppEnabledExtensionNames = glfwExtensions,
+        .enabledExtensionCount = extensionInfo.first,
+        .ppEnabledExtensionNames = extensionInfo.second,
     };
 
-    this->instance = vk::raii::Instance(context, createInfo);
-    this->physicalDevice = this->instance.enumeratePhysicalDevices().front();
-    this->device = vk::raii::Device(this->physicalDevice, vk::DeviceCreateInfo());
+    this->instance.emplace(this->context, createInfo);
+    this->physicalDevice.emplace(this->instance->enumeratePhysicalDevices().front());
 
-    this->buffer = vk::raii::Buffer(this->device, vk::BufferCreateInfo());
+    this->device.emplace(*this->physicalDevice, this->getDeviceInfo());
+    this->buffer.emplace(*this->device, vk::BufferCreateInfo());
 }
 
 void Triangle::render() {

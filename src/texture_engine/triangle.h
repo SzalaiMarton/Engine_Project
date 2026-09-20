@@ -23,20 +23,25 @@ public:
     void add(Triangle* triangle);
 
 private:
-    std::vector<Triangle*>          objects{};
-    VkApplicationInfo               appInfo;
-    vk::InstanceCreateInfo          createInfo;
-    GLFWwindow*                     window = nullptr;
-    vk::raii::Context               context;
-    vk::raii::Instance              instance = nullptr;
-    vk::raii::Device                device;
-    vk::raii::PhysicalDevice        physicalDevice;
-    vk::raii::Buffer                buffer;
+    std::vector<Triangle*> objects{};
+    VkApplicationInfo appInfo;
+    vk::InstanceCreateInfo createInfo;
+    GLFWwindow* window = nullptr;
+    vk::raii::Context context;
+    std::optional<vk::raii::Instance> instance;
+    std::optional<vk::raii::Device> device;
+    std::optional<vk::raii::PhysicalDevice> physicalDevice;
+    std::optional<vk::raii::Buffer> buffer;
+
+    uint32_t graphicsQueueFamily = 0;
 
     void initWindow();
     void initVulkan();
     void mainloop();
     void cleanup();
+
+    vk::DeviceCreateInfo getDeviceInfo();
+    std::pair<uint32_t, const char**> getExtensionInfo();
 };
 
 class Triangle {
