@@ -12,10 +12,15 @@ export OUTPUT_DIR_NINJA				:= build-ninja
 
 # =============================== ARGS ===============================
 
-SOURCE_FOLDER_PATH 					?= $(CURDIR)/src
-OUTPUT_DIR							?= $(CURDIR)/build
-REDIRECT_RUNTIME_OUTPUT				?= 1
-EXCEPT_SOURCE_FOLDERS				?= ""
+SFP									?= $(CURDIR)/src
+ESF									?= ""
+OD									?= $(CURDIR)/build
+RRO									?= 1
+
+SOURCE_FOLDER_PATH 					?= $(SFP)
+OUTPUT_DIR							?= $(OD)
+REDIRECT_RUNTIME_OUTPUT				?= $(RRO)
+EXCEPT_SOURCE_FOLDERS				?= $(ESF)
 USE_GDB								?= 0
 
 # ========================== HARDCODED VARS ==========================
@@ -27,30 +32,6 @@ RUNTIME_ERROR						:= $(CURDIR)/_runtime_error.log
 GDB_COMMAND							:= gdb --args
 
 .PHONY: build-engine run-engine print-runtime-error print-runtime-output follow-runtime-error follow-runtime-output help all 
-
-help:
-	@echo "Available targets:"
-	@echo "\tbuild-engine \t\t\t\t || Build the engine"
-	@echo "\truntime-engine \t\t\t\t || Run the engine"
-	@echo "\tprint-runtime-error \t\t\t || Show runtime errors (reversed)"
-	@echo "\tprint-runtime-output \t\t\t || Show runtime output (reversed)"
-	@echo "\tfollow-runtime-output \t\t\t || Tail runtime output"
-	@echo "\tfollow-runtime-error \t\t\t || Tail runtime errors"
-	@echo "\tall \t\t\t\t\t || Build and run"
-	@echo "\thelp \t\t\t\t\t || Show this help"
-	@echo "\nAvailable ARGS:"
-	@echo "\tSOURCE_FOLDER_PATH (str path) \t\t || Folder with the source (.cpp) files - recursively scaned"
-	@echo "\tOUTPUT_DIR (str path) \t\t\t || The build's output folder"
-	@echo "\tEXCEPT_SOURCE_FOLDERS (str path) \t || Ignores the specified folders content when collecting .cpp files"
-	@echo "\tREDIRECT_RUNTIME_OUTPUT (boolean 1/0) \t || 1 -> Redirects the runtime output || 0 -> Output will be printed to the console"
-	@echo "\tUSE_GDB (boolean 1/0) \t\t\t || If true 'run-engine' will run the binary with 'gdb --args'"
-
-
-# ===============================================================================
-#
-#									BUILDING STAGE
-#
-# ===============================================================================
 
 comma := ,
 empty :=
@@ -71,20 +52,50 @@ else
     FIND_PRUNE :=
 endif
 
+ifeq ($(USE_GDB), 0)
+	GDB_COMMAND := 
+endif
+
+
+# ===============================================================================
+#
+#									    TARGETS
+#
+# ===============================================================================
+
+
+help:
+	@echo "Available targets:"
+	@echo "\tbuild-engine \t\t || Build the engine"
+	@echo "\truntime-engine \t\t || Run the engine"
+	@echo "\tprint-runtime-error \t || Show runtime errors (reversed)"
+	@echo "\tprint-runtime-output \t || Show runtime output (reversed)"
+	@echo "\tfollow-runtime-output \t || Tail runtime output"
+	@echo "\tfollow-runtime-error \t || Tail runtime errors"
+	@echo "\tall \t\t\t || Build and run"
+	@echo "\thelp \t\t\t || Show this help"
+	@echo "\nAvailable ARGS:"
+	@echo "\tSOURCE_FOLDER_PATH | SFP (str path) \t\t || Folder with the source (.cpp) files - recursively scaned"
+	@echo "\tOUTPUT_DIR | OD (str path) \t\t\t || The build's output folder"
+	@echo "\tEXCEPT_SOURCE_FOLDERS | ESF (str path) \t\t || Ignores the specified folders content when collecting .cpp files"
+	@echo "\tREDIRECT_RUNTIME_OUTPUT | RRO (boolean 1/0) \t || 1 -> Redirects the runtime output || 0 -> Output will be printed to the console"
+	@echo "\tUSE_GDB (boolean 1/0) \t\t\t\t || If true 'run-engine' will run the binary with 'gdb --args'"
+
+
+# ===============================================================================
+#
+#									BUILDING STAGE
+#
+# ===============================================================================
+
 build-engine:
 	@${BUILD_SCRIPT} ${SOURCE_FOLDER_PATH} ${OUTPUT_DIR} ${FIND_PRUNE}
-
-
 
 # ===============================================================================
 #
 #									RUN STAGE
 #
 # ===============================================================================
-
-ifeq ($(USE_GDB), 0)
-	GDB_COMMAND := 
-endif
 
 run-engine:
 	@${RUN_SCRIPT} ${REDIRECT_RUNTIME_OUTPUT} ${RUNTIME_OUTPUT} ${RUNTIME_ERROR} ${OUTPUT_DIR} ${GDB_COMMAND}
