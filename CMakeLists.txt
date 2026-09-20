@@ -32,6 +32,9 @@ target_precompile_headers(engine PRIVATE
     "src/stdafx.h"
 )
 
+find_package(glfw3 3.3 REQUIRED)
+find_package(Vulkan REQUIRED)
+
 target_link_libraries(engine PRIVATE
     SFML::Graphics
     SFML::Window
@@ -39,6 +42,8 @@ target_link_libraries(engine PRIVATE
     stdc++fs
     pthread
     dl
+    glfw
+    Vulkan::Vulkan
 )
 
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT engine)
